@@ -56,8 +56,8 @@ exports.login = async (req, res) => {
 
         // Generate and send OTP
         const otp = otpController.generateOTP();
-        otpController.storeOTP(otp, phoneNumber);
-        otpController.sendOTP(otp, phoneNumber); // Assuming sendOTP handles both email and phone
+        otpController.storeOTP(phoneNumber, otp);
+        otpController.sendOTP(phoneNumber, otp); // Assuming sendOTP handles both email and phone
 
     } catch (error) {
         console.error('Error during login:', error);
@@ -68,13 +68,17 @@ exports.validateOtp = async (req, res) => {
     try {
         const phoneNumber = req.body.phoneNumber;
         const otp = req.body.otp;
-
+        console.log(phoneNumber, otp);
         const isValid = await otpController.verifyOTP(phoneNumber, otp);
 
         if (isValid) {
+            // OTP is valid, generate a JWT token
+            const { accessToken, expiresIn } = generateAccessToken(phoneNumber); // Replace with your token generation logic
+
             // Logic for successful OTP validation
-            // This could include generating a JWT or updating user status
-            res.status(200).json({ message: 'OTP validated successfully' });
+            // This could include updating user status or other actions
+
+            res.status(200).json({ message: 'OTP validated successfully', accessToken, expiresIn });
         } else {
             res.status(401).json({ message: 'Invalid OTP' });
         }
@@ -83,6 +87,24 @@ exports.validateOtp = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+// Function to generate a JWT token and return the token and expiration time
+function generateAccessToken(phoneNumber) {
+    // Replace with your secret key and any other relevant payload information
+    const secretKey = 'yourSecretKey';
+    const payload = { phoneNumber };
+
+    // Set an expiration time for the token (e.g., 1 hour)
+    const expiresIn = '1h';
+
+    // Generate the JWT token
+    const accessToken = jwt.sign(payload, secretKey, { expiresIn });
+
+    // Calculate the expiration timestamp
+    const expirationTimestamp = Math.floor(Date.now() / 1000) + jwt.decode(accessToken).exp;
+
+    return { accessToken, expiresIn: expirationTimestamp };
+}
 
 
 exports.logout = async (req, res) => {

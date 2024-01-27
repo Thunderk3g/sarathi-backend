@@ -1,43 +1,56 @@
 const redis = require('redis');
 const twilio = require('twilio');
+const dotenv = require('dotenv');
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Configure Redis client for newer versions
 const redisClient = redis.createClient({
-    password: '8DsnCuLNl7Izrsui5eY3MOywDIc5tsSi', // Use environment variable or secure method to store password
+    password: process.env.REDIS_PASSWORD,
     socket: {
-        host: 'redis-10947.c212.ap-south-1-1.ec2.cloud.redislabs.com',
-        port: 10947
+        host: process.env.REDIS_HOST,
+        port: parseInt(process.env.REDIS_PORT)
     }
 });
-redisClient.connect();
 redisClient.on('error', (err) => console.log('Redis Client Error', err));
 
 // Configure Twilio client for SMS sending
-const twilioClient = twilio('ACedf68f1ef221f3aeb6e6bf584eebb8e3', 'c44e75a541148a28980fca8db829c538'); // Use environment variable or secure method to store credentials
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 const generateOTP = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 const storeOTP = (phoneNumber, otp) => {
-    return redisClient.setEx(phoneNumber, 300, otp); // Corrected the client variable name
+    console.log(phoneNumber, otp);
+    return new Promise((resolve, reject) => {
+        redisClient.set(phoneNumber, otp, 'EX', 180, (err, result) => {
+            if (err) {
+                console.error('Error setting OTP in Redis:', err);
+                reject(err);
+            } else {
+                console.log('OTP stored in Redis:', result);
+                resolve(result);
+            }
+        });
+    });
 };
 
-const sendOTP = async (otp, phone) => {
+const sendOTP = async (phone, otp) => {
     const phoneNumber = phone;
     try {
-        twilioClient.messages.create({
+        await twilioClient.messages.create({
             to: phoneNumber,
-            from: '+14199623006', // Replace with your Twilio phone number
+            from: process.env.TWILIO_PHONE_NUMBER,
             body: `Your OTP is: ${otp}`
         });
-        return { success: true, otp: otp }; // Return success status and OTP
+        return { success: true, otp: otp };
     } catch (error) {
         console.error('Error sending OTP via Twilio:', error);
-        return { success: false, error: error.message }; // Return error information
+        return { success: false, error: error.message };
     }
 };
-
 
 const verifyOTP = (phoneNumber, otp) => {
     return new Promise(async (resolve, reject) => {
