@@ -1,6 +1,7 @@
 const redis = require('redis');
 const twilio = require('twilio');
 const dotenv = require('dotenv');
+const CustomError = require('../../utils/customError'); // Adjust the path as necessary
 
 // Load environment variables from .env file
 dotenv.config();
@@ -23,14 +24,11 @@ const generateOTP = () => {
 };
 
 const storeOTP = (phoneNumber, otp) => {
-    console.log(phoneNumber, otp);
     return new Promise((resolve, reject) => {
         redisClient.set(phoneNumber, otp, 'EX', 180, (err, result) => {
             if (err) {
-                console.error('Error setting OTP in Redis:', err);
-                reject(err);
+                reject(new CustomError(500, 'Error setting OTP in Redis'));
             } else {
-                console.log('OTP stored in Redis:', result);
                 resolve(result);
             }
         });

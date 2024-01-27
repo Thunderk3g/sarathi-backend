@@ -3,6 +3,8 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const indexRoute = require('./routes/index.route');
 const cors = require('cors');
+const errorHandler = require('./middlewares/errorHandler');
+
 dotenv.config(); // This will load the environment variables from the .env file
 
 const app = express();
@@ -19,6 +21,7 @@ mongoose.connect(process.env.MONGO_URL)
     .catch(err => console.error('MongoDB connection error:', err));
 
 app.use('/api', indexRoute);
+app.use(errorHandler);
 
 // Define other middlewares and routes
 
