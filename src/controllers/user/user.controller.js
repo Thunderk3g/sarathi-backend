@@ -1,28 +1,33 @@
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken'); // Import JWT library
 const User = require('../../models/user/user.model');
+const otpController = require('../otp-handler/otp-handler'); // Correct the path as needed
 
 exports.register = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const name = req.body.name;
+        const email = req.body.email;
+        const password = req.body.password;
+        const phoneNumber = req.body.phoneNumber;
 
-        // Check if the email is already registered
-        const existingUser = await User.findOne({ email });
+        // Check if the email or phone number is already registered
+        const existingUser = await User.findOne({ $or: [{ email }, { phoneNumber }] });
         if (existingUser) {
-            return res.status(400).json({ message: 'Email is already registered' });
+            return res.status(400).json({ message: 'Email or phone number is already registered' });
         }
 
         // Hash the password
-        const hashedPassword = await bcrypt.hash(password, 8);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create a new user
         const newUser = new User({
             name,
             email,
             password: hashedPassword,
-            verified: false, // Set verified to false by default
+            phoneNumber,
+            verified: false,
             createdAt: new Date(),
             updatedAt: new Date(),
-            // You can set other properties here as needed
         });
 
         // Save the user to the database
@@ -37,51 +42,58 @@ exports.register = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
-
 exports.login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { phoneNumber } = req.body;
 
-        // Check if the email exists in the database
-        const user = await User.findOne({ email });
+        // Check if the phone number exists in the database
+        const user = await User.findOne({ phoneNumber }).exec();
 
-        // If the email is not found, return an error
+        // If the phone number is not found, return an error
         if (!user) {
-            return res.status(401).json({ message: 'Invalid email or password' });
+            return res.status(401).json({ message: 'Invalid phone number' });
         }
 
-        // Compare the provided password with the stored hashed password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        // Generate and send OTP
+        const otp = otpController.generateOTP();
+        otpController.storeOTP(otp, phoneNumber);
+        otpController.sendOTP(otp, phoneNumber); // Assuming sendOTP handles both email and phone
 
-        // If the password is invalid, return an error
-        if (!isPasswordValid) {
-            return res.status(401).json({ message: 'Invalid email or password' });
-        }
-
-        // Create and sign a JSON Web Token (JWT)
-        const token = jwt.sign(
-            {
-                userId: user._id,
-                email: user.email,
-                // You can include additional data in the token payload as needed
-            },
-            process.env.JWT_SECRET, // Replace with your own secret key
-            { expiresIn: '1h' } // Set the token expiration time as needed
-        );
-
-        // Respond with the token
-        res.status(200).json({ token });
     } catch (error) {
         console.error('Error during login:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+exports.validateOtp = async (req, res) => {
+    try {
+        const phoneNumber = req.body.phoneNumber;
+        const otp = req.body.otp;
+
+        const isValid = await otpController.verifyOTP(phoneNumber, otp);
+
+        if (isValid) {
+            // Logic for successful OTP validation
+            // This could include generating a JWT or updating user status
+            res.status(200).json({ message: 'OTP validated successfully' });
+        } else {
+            res.status(401).json({ message: 'Invalid OTP' });
+        }
+    } catch (error) {
+        console.error('Error during OTP validation:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+
 exports.logout = async (req, res) => {
-    // Implement logout logic, possibly by invalidating the token
+    // Implement logout logic, possibly by invalidating the token or removing it from the client
 };
 
 exports.updateProfile = async (req, res) => {
     // Implement profile update logic
 };
+
+
+
 
 // Add other necessary controllers for user management

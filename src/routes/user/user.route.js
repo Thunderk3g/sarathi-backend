@@ -6,5 +6,6 @@ const userController = require('../../controllers/user/user.controller');
 router.post('/register', userController.register);
 router.post('/login', userController.login);
 // ... and other user routes
+router.post('/validate-otp', userController.validateOtp); // New route for OTP validation
 
 module.exports = router;

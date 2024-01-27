@@ -2,7 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const indexRoute = require('./routes/index.route');
-const cors = require('cors'); // Corrected import statement
+const cors = require('cors');
 dotenv.config();
 
 const app = express();
@@ -12,13 +12,9 @@ app.use(
 );
 
 // Define the allowed origins (replace with your specific origins)
-const allowedOrigins = [
-    'http://example.com',
-    'https://example2.com',
-];
+
 
 app.use(cors({
-    origin: allowedOrigins,
     optionsSuccessStatus: 200,
 }));
 
@@ -26,6 +22,11 @@ app.use(cors({
 mongoose.connect(process.env.MONGO_URL)
     .then(() => console.log('MongoDB connected'))
     .catch(err => console.error('MongoDB connection error:', err));
+
+// Define a base landing response for the root route ("/")
+app.get('/', (req, res) => {
+    res.send('Welcome to Sarathi');
+});
 
 app.use('/api', indexRoute);
 
