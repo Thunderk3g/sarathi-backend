@@ -8,7 +8,7 @@ const rideController = {
             const { userId, pickupLocation, dropoffLocation, preferences } = req.body;
 
             // TODO: Add input validation here
-
+            x
             const newRide = new Ride({
                 user: userId,
                 pickupLocation: {
