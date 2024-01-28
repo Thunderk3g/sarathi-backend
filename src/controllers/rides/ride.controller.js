@@ -1,14 +1,31 @@
-const Ride = require('../../models/rides/rides.model');
+const Ride = require('../../models/rides/riderequest.model');
 const Driver = require('../../models/rider/driver.model');
 // Include other necessary models and libraries
-
+const User = require('../../models/user/user.model'); // Assuming this is the path to your User model
 const rideController = {
     requestRide: async (req, res) => {
         try {
-            const { userId, pickupLocation, dropoffLocation, preferences } = req.body;
+            const {
+                user: userId,
+                pickupLocation,
+                dropoffLocation,
+                requestTime,
+                startTime,
+                endTime,
+                status,
+                fare,
+                preferences
+            } = req.body;
 
-            // TODO: Add input validation here
-            x
+            // Check if user exists
+            const userExists = await User.exists({ _id: userId });
+            if (!userExists) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+
+            // TODO: Add additional input validation here
+
             const newRide = new Ride({
                 user: userId,
                 pickupLocation: {
@@ -19,25 +36,30 @@ const rideController = {
                     latitude: dropoffLocation.latitude,
                     longitude: dropoffLocation.longitude
                 },
-                // requestTime is automatically set by default to Date.now
-                status: 'requested',
-                // Include other fields like fare, preferences, etc., as per your schema
+                requestTime,
+                startTime,
+                endTime,
+                status: status || 'requested',
+                fare,
+                preferences
             });
 
             await newRide.save();
 
-            // Call the function to match the ride with available drivers
-            await matchRideWithDrivers(newRide);
+            // TODO: Implement matchRideWithDrivers function
+            // await matchRideWithDrivers(newRide);
 
             res.status(201).json(newRide);
         } catch (error) {
             console.error('Error requesting ride:', error);
             res.status(500).json({ message: 'Error requesting ride' });
         }
-    },
+    }
+
 
     // Other ride-related methods can be added here
 };
+
 
 async function matchRideWithDrivers(rideRequest) {
     try {
