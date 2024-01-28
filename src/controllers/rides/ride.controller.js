@@ -1,5 +1,5 @@
-const Ride = require('../models/Ride');
-const Driver = require('../models/Driver');
+const Ride = require('../../models/rides/rides.model');
+const Driver = require('../../models/rider/driver.model');
 // Include other necessary models and libraries
 
 const rideController = {

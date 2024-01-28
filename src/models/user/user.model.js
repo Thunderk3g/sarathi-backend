@@ -38,6 +38,12 @@ const userSchema = new Schema({
         type: Date,
         required: true,
     },
+    roles: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Role"
+        }
+    ]
 });
 
 module.exports = mongoose.model('User', userSchema);

@@ -12,7 +12,13 @@ const driverSchema = new mongoose.Schema({
         coordinates: { type: [Number], default: [0, 0] } // [longitude, latitude]
     },
     createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
+    updatedAt: { type: Date, default: Date.now },
+    roles: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Role"
+        }
+    ]
 });
 
 // Geospatial index for location
