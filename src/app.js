@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const indexRoute = require('./routes/index.route');
 const cors = require('cors');
 const errorHandler = require('./middlewares/errorHandler');
+const compression = require('compression')
 
 dotenv.config(); // This will load the environment variables from the .env file
 
@@ -11,6 +12,7 @@ const app = express();
 const db = require("././models/index.model");
 const Role = db.role;
 app.use(express.json({ limit: '10mb' }));
+app.use(compression());
 app.use(
     express.urlencoded({ limit: '10mb', extended: true, parameterLimit: 50000 }),
 );
