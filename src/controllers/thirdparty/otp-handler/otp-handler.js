@@ -1,7 +1,7 @@
 const redis = require('redis');
 const twilio = require('twilio');
 const dotenv = require('dotenv');
-const CustomError = require('../../utils/customError'); // Adjust the path as necessary
+const CustomError = require('../../../utils/customError'); // Adjust the path as necessary
 
 // Load environment variables from .env file
 dotenv.config();
