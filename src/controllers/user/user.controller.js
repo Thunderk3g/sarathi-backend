@@ -4,23 +4,34 @@ const User = require('../../models/user/user.model');
 const otpController = require('../otp-handler/otp-handler');
 const asyncHandler = require('../../middlewares/asyncHandler');
 const CustomError = require('../../utils/CustomError');
+const Role = require('../../models/index.model'); // Ensure you have a Role model
 
 // Environment variables
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Register user
 exports.register = asyncHandler(async (req, res) => {
-    const { name, email, password, phoneNumber } = req.body;
+    const { name, email, password, phoneNumber, roles } = req.body;
 
     const existingUser = await User.findOne({ $or: [{ email }, { phoneNumber }] });
     if (existingUser) {
         throw new CustomError(400, 'Email or phone number already registered');
-    } else {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = await User.create({ name, email, password: hashedPassword, phoneNumber, verified: false });
-        newUser.password = undefined;
-        res.status(201).json(newUser);
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ name, email, password: hashedPassword, phoneNumber, verified: false });
+
+    if (roles) {
+        const assignedRoles = await Role.find({ name: { $in: roles } });
+        user.roles = assignedRoles.map(role => role._id);
+    } else {
+        const defaultRole = await Role.findOne({ name: 'user' });
+        user.roles = [defaultRole._id];
+    }
+
+    await user.save();
+
+    res.status(201).send({ message: 'User was registered successfully!' });
 });
 
 
