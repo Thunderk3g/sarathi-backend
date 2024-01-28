@@ -1,25 +1,56 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const Rider = require('../../models/rider/rider.model');
+const Rider = require('../../models/rider/driver.model');
+const Vehicle = require('../../models/rider/vehicle.model');
 const otpController = require('../thirdparty/otp-handler/otp-handler');
 const asyncHandler = require('../../middlewares/asyncHandler');
 const CustomError = require('../../utils/CustomError');
 const db = require("../../models/index.model");
 const Role = db.role;
+const mongoose = require('mongoose');
 
 // Environment variables
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Register rider
+// Register rider with vehicle data
 exports.register = asyncHandler(async (req, res) => {
-    const { name, email, password, phoneNumber, roles, createdAt, updatedAt } = req.body;
+    const { name, email, password, phoneNumber, licenseNumber, vehicle, roles, createdAt, updatedAt } = req.body;
+
+    // Check if the vehicle exists and is valid
+    if (!mongoose.isValidObjectId(vehicle)) {
+        throw new CustomError(400, 'Invalid vehicle information');
+    }
+
+    const existingVehicle = await Vehicle.findById(vehicle);
+
+    if (!existingVehicle) {
+        throw new CustomError(400, 'Invalid vehicle information');
+    }
+
+    // Check that password is not empty
+    if (!password) {
+        throw new CustomError(400, 'Password is required');
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const existingRider = await Rider.findOne({ $or: [{ email }, { phoneNumber }] });
     if (existingRider) {
         throw new CustomError(400, 'Email or phone number already registered');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const rider = new Rider({ name, email, password: hashedPassword, phoneNumber, verified: false, createdAt, updatedAt });
+    const rider = new Rider({
+        name,
+        email,
+        password: hashedPassword,
+        phoneNumber,
+        licenseNumber,
+        vehicle: existingVehicle._id, // Use the existing vehicle ObjectId
+        verified: false,
+        createdAt,
+        updatedAt
+    });
 
     if (roles) {
         const assignedRoles = await Role.find({ name: { $in: roles } });
@@ -33,6 +64,7 @@ exports.register = asyncHandler(async (req, res) => {
 
     res.status(201).send({ message: 'Rider was registered successfully!' });
 });
+
 
 // Login rider
 exports.login = asyncHandler(async (req, res) => {
