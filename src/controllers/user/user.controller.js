@@ -37,6 +37,7 @@ exports.register = asyncHandler(async (req, res) => {
 // Login user
 exports.login = asyncHandler(async (req, res) => {
     const { phoneNumber } = req.body;
+    console.log(phoneNumber);
     const user = await User.findOne({ phoneNumber }).exec();
     if (!user) {
         throw new CustomError(401, 'Invalid phone number');

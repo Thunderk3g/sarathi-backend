@@ -14,6 +14,7 @@ const redisClient = redis.createClient({
         port: parseInt(process.env.REDIS_PORT)
     }
 });
+redisClient.connect().catch(err => console.error('Redis connection error:', err));
 redisClient.on('error', (err) => console.log('Redis Client Error', err));
 
 // Configure Twilio client for SMS sending
@@ -24,19 +25,12 @@ const generateOTP = () => {
 };
 
 const storeOTP = (phoneNumber, otp) => {
-    return new Promise((resolve, reject) => {
-        redisClient.set(phoneNumber, otp, 'EX', 180, (err, result) => {
-            if (err) {
-                reject(new CustomError(500, 'Error setting OTP in Redis'));
-            } else {
-                resolve(result);
-            }
-        });
-    });
+    return redisClient.set(phoneNumber, otp, 'EX', 180);
 };
 
 const sendOTP = async (phone, otp) => {
     const phoneNumber = phone;
+    console.log("Lauda");
     try {
         await twilioClient.messages.create({
             to: phoneNumber,
