@@ -3,16 +3,22 @@ const mongoose = require('mongoose');
 const rideRequestSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Replace with the actual reference model name for the user
+        ref: 'User',
         required: true,
     },
     pickupLocation: {
-        latitude: Number,
-        longitude: Number,
+        type: { type: String, enum: ['Point'], default: 'Point' },
+        coordinates: {
+            type: [Number], // [longitude, latitude]
+            required: true
+        }
     },
     dropoffLocation: {
-        latitude: Number,
-        longitude: Number,
+        type: { type: String, enum: ['Point'], default: 'Point' },
+        coordinates: {
+            type: [Number], // [longitude, latitude]
+            required: true
+        }
     },
     status: {
         type: String,
@@ -20,20 +26,22 @@ const rideRequestSchema = new mongoose.Schema({
         default: 'requested',
     },
     preferences: {
-        // Define any preferences fields you want to include
+        // Add preferences fields as required
     },
     fare: {
         type: Number,
         required: true
     },
-    // Add other fields as needed for your ride request schema
     createdAt: {
         type: Date,
         default: Date.now,
     },
 });
 
-// Create the RideRequest model
+// Geospatial index for the pickupLocation
+rideRequestSchema.index({ 'pickupLocation': '2dsphere' });
+// Optionally, you can also index dropoffLocation if needed
+
 const RideRequest = mongoose.model('RideRequest', rideRequestSchema);
 
 module.exports = RideRequest;

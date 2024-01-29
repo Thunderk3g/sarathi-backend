@@ -2,6 +2,7 @@ const Ride = require('../../models/rides/riderequest.model');
 const Driver = require('../../models/rider/driver.model');
 // Include other necessary models and libraries
 const User = require('../../models/user/user.model'); // Assuming this is the path to your User model
+const RideRequest = require('../../models/rides/riderequest.model');
 const rideController = {
     requestRide: async (req, res) => {
         try {
@@ -16,25 +17,21 @@ const rideController = {
                 fare,
                 preferences
             } = req.body;
-
             // Check if user exists
             const userExists = await User.exists({ _id: userId });
             if (!userExists) {
                 return res.status(404).json({ message: 'User not found' });
             }
 
-
-            // TODO: Add additional input validation here
-
             const newRide = new Ride({
                 user: userId,
                 pickupLocation: {
-                    latitude: pickupLocation.latitude,
-                    longitude: pickupLocation.longitude
+                    type: 'Point',
+                    coordinates: [pickupLocation.coordinates[0], pickupLocation.coordinates[1]] // Longitude, Latitude
                 },
                 dropoffLocation: {
-                    latitude: dropoffLocation.latitude,
-                    longitude: dropoffLocation.longitude
+                    type: 'Point',
+                    coordinates: [dropoffLocation.coordinates[0], dropoffLocation.coordinates[1]] // Longitude, Latitude
                 },
                 requestTime,
                 startTime,
@@ -45,50 +42,57 @@ const rideController = {
             });
 
             await newRide.save();
-
-            // TODO: Implement matchRideWithDrivers function
-            // await matchRideWithDrivers(newRide);
-
             res.status(201).json(newRide);
         } catch (error) {
             console.error('Error requesting ride:', error);
             res.status(500).json({ message: 'Error requesting ride' });
         }
-    }
+    },
+
 
 
     // Other ride-related methods can be added here
+    matchRide: async (req, res) => {
+        try {
+            const { driverId, location } = req.body; // Assuming driver's ID and location are passed in the request body
+
+            // Verify the driver's existence in the database
+            const driverExists = await Driver.exists({ _id: driverId });
+            if (!driverExists) {
+                return res.status(404).json({ message: 'Driver not found' });
+            }
+
+            // Find nearby ride requests based on the driver's location
+            const nearbyRideRequests = await findNearbyRideRequests(location);
+
+            res.status(200).json(nearbyRideRequests);
+        } catch (error) {
+            console.error('Error in finding nearby ride requests:', error);
+            res.status(500).json({ message: 'Error in finding nearby ride requests' });
+        }
+    }
 };
 
 
-async function matchRideWithDrivers(rideRequest) {
-    try {
-        const nearbyDrivers = await findNearbyAvailableDrivers(rideRequest.pickupLocation);
-        const suitableDrivers = filterDriversBasedOnPreferences(nearbyDrivers, rideRequest.preferences);
 
-        for (const driver of suitableDrivers) {
-            notifyDriver(driver, rideRequest);
-        }
-    } catch (error) {
-        console.error('Error in matching ride with drivers:', error);
-        // Handle error appropriately
-    }
-}
-
-async function findNearbyAvailableDrivers(pickupLocation) {
+async function findNearbyRideRequests(driverLocation) {
     const maxDistance = 5000; // Maximum distance in meters
-    return await Driver.find({
-        status: 'available',
-        location: {
+    return await RideRequest.find({
+        pickupLocation: {
             $nearSphere: {
                 $geometry: {
                     type: "Point",
-                    coordinates: [pickupLocation.longitude, pickupLocation.latitude]
+                    coordinates: [driverLocation.longitude, driverLocation.latitude]
                 },
                 $maxDistance: maxDistance
             }
-        }
+        },
+        status: 'requested'
     });
+}
+function filterDriversBasedOnPreferences(drivers, preferences) {
+    // Implement logic to filter or sort drivers based on preferences
+    return drivers; // Placeholder, refine as needed
 }
 
 function filterDriversBasedOnPreferences(drivers, preferences) {
